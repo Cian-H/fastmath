@@ -1,89 +1,153 @@
-use num_traits::sign::Signed;
+use std::f32::consts as f32_consts;
+use std::f64::consts as f64_consts;
 use num_traits::float::{Float, FloatConst};
-use num_traits::NumCast;
-use std::ops::{Sub, Rem};
-use serde::{Serialize, Deserialize};
-// use packed_simd::f64x4;
+use crate::lookup::TABLE_SIZE;
+use crate::lookup::const_tables::*;
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+// This function should never be used in a non-const context.
+// It only exists as a workaround for the fact that const fn's cannot use iterators.
+const fn make_ordinal<T: Float>(
+    input: [T; TABLE_SIZE],
+    mut map_target: [FloatOrd<T>; TABLE_SIZE],
+) -> () {
+    // let mut map_target = [FloatOrd::<T>::new(); TABLE_SIZE];
+    let mut index = 0;
+    while index < TABLE_SIZE {
+        map_target[index] = FloatOrd(input[index]);
+        index += 1;
+    }
+}
+
+
+// The following macros are to minimise the amount of boilerplate for static types on the lookup tables.
+macro_rules! impl_fbitfbit_lookup_table {
+    ($key_type:ty, $value_type:ty) => {
+        impl FloatLookupTable<$key_type, $value_type> {
+            pub const fn new_const(keys: [$key_type; TABLE_SIZE], values: [$value_type; TABLE_SIZE]) -> Self {
+                let ord_keys: [FloatOrd<$key_type>; TABLE_SIZE] = [FloatOrd(0.0 as $key_type); TABLE_SIZE];
+                make_ordinal(keys, ord_keys);
+                FloatLookupTable {
+                    keys: ord_keys,
+                    values,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_cycling_fbitfbit_lookup_table {
+    ($key_type:ty, $value_type:ty) => {
+        impl CyclingFloatLookupTable<$key_type, $value_type> {
+            pub const fn new_const(keys: [$key_type; TABLE_SIZE], values: [$value_type; TABLE_SIZE], lower_bound: $key_type, upper_bound: $key_type) -> Self {
+                CyclingFloatLookupTable {
+                    lookup_table: FloatLookupTable::<$key_type, $value_type>::new_const(keys, values),
+                    lower_bound,
+                    upper_bound,
+                }
+            }
+        }
+    };
+}
+
+
+#[derive(Default, Debug,Clone, Copy, PartialEq,  PartialOrd)]
+pub struct FloatOrd<T: Float>(pub T);
+impl<T: Float> FloatOrd<T> {
+    pub fn new() -> Self {
+        FloatOrd(T::zero())
+    }
+}
+impl<T: Float> Eq for FloatOrd<T> {}
+impl<T: Float> Ord for FloatOrd<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap_or(std::cmp::Ordering::Equal)
+    }
+}
+
+
+#[derive(Debug, Clone)]
 pub struct FloatLookupTable<T1, T2>
-where T1: Float,
-      T2: Float,
+where 
+    T1: Float,
+    T2: Float,
 {
-    keys: Vec<T1>,
-    values: Vec<T2>,
+    keys: [FloatOrd<T1>; TABLE_SIZE],
+    values: [T2; TABLE_SIZE],
 }
 impl<T1, T2> FloatLookupTable<T1, T2>
-where T1: Float,
-      T2: Float,
+where 
+    T1: Float,
+    T2: Float,
 {
-    pub fn new(mut keys: Vec<T1>, mut values: Vec<T2>) -> Self {
-        let mut indices: Vec<_> = (0..keys.len()).collect();
-        indices.sort_by(|&i, &j| keys[i].partial_cmp(&keys[j]).unwrap());
-        for i in 0..keys.len() {
-            while i != indices[i] {
-                let swap_index = indices[i];
-                keys.swap(i, swap_index);
-                values.swap(i, swap_index);
-                indices.swap(i, swap_index);
-            }
+    pub fn new(keys: [T1; TABLE_SIZE], values: [T2; TABLE_SIZE]) -> Self {
+        FloatLookupTable {
+            keys: keys.map(|key| FloatOrd(key)),
+            values,
         }
-        FloatLookupTable { keys, values }
     }
 
-    #[allow(dead_code)]
-    pub fn lookup(&self, key: T1) -> T2 {
-        match self.keys.binary_search_by(|probe| probe.partial_cmp(&key).unwrap()) {
-            Ok(index) => self.values[index],
-            Err(index) => {
-                let upper_key = &self.keys[index];
-                let upper_val = &self.values[index];
-                let low_index = index - 1;
-                let lower_key = &self.keys[low_index];
-                let lower_val = &self.values[low_index];
-                // select nearest neighbour
-                let diff_upper = (key - *upper_key).abs();
-                let diff_lower = (key - *lower_key).abs();
-                let mask = diff_lower <= diff_upper;
-                (*lower_val * T2::from(mask as u8).expect("Failed to unwrap mask")) +
-                (*upper_val * T2::from(!mask as u8).expect("Failed to unwrap !mask"))
+    pub fn get_next(&self, key: T1) -> T2 {
+        let ord_key = FloatOrd(key);
+        let mut lower_bound = 0;
+        let mut upper_bound = self.keys.len() - 1;
+        let mut mid = (lower_bound + upper_bound) / 2;
+        while upper_bound - lower_bound > 1 {
+            if self.keys[mid] < ord_key {
+                lower_bound = mid;
+            } else {
+                upper_bound = mid;
             }
+            mid = (lower_bound + upper_bound) / 2;
         }
+        self.values[mid]
+    }
+
+    pub fn lookup(&self, key: T1) -> T2 {
+        self.get_next(key)
     }
 }
+impl_fbitfbit_lookup_table!(f32, f32);
+impl_fbitfbit_lookup_table!(f64, f64);
+impl_fbitfbit_lookup_table!(f32, f64);
+impl_fbitfbit_lookup_table!(f64, f32);
 
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct CyclingFloatLookupTable<T1, T2>
-where T1: Float,
-      T2: Float,
+where 
+    T1: Float,
+    T2: Float,
 {
     lookup_table: FloatLookupTable<T1, T2>,
     lower_bound: T1,
     upper_bound: T1,
-    bound_range: T1,
 }
 impl<T1, T2> CyclingFloatLookupTable<T1, T2>
-where T1: Float,
-      T2: Float,
+where
+    T1: Float,
+    T2: Float,
 {
-    pub fn new(keys: Vec<T1>, values: Vec<T2>, lower_bound: T1, upper_bound: T1) -> Self {
+    pub fn new(keys: [T1; TABLE_SIZE], values: [T2; TABLE_SIZE], lower_bound: T1, upper_bound: T1) -> Self {
         CyclingFloatLookupTable {
             lookup_table: FloatLookupTable::new(keys, values),
-            lower_bound: lower_bound,
-            upper_bound: upper_bound,
-            bound_range: upper_bound - lower_bound,
+            lower_bound,
+            upper_bound,
         }
     }
 
     pub fn lookup(&self, key: T1) -> T2 {
-        let key = (key % self.bound_range) + self.lower_bound;
+        let key = (key % (self.upper_bound - self.lower_bound)) + self.lower_bound;
         self.lookup_table.lookup(key)
     }
 }
+impl_cycling_fbitfbit_lookup_table!(f32, f32);
+impl_cycling_fbitfbit_lookup_table!(f64, f64);
+impl_cycling_fbitfbit_lookup_table!(f32, f64);
+impl_cycling_fbitfbit_lookup_table!(f64, f32);
 
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+
+#[derive(Debug, Clone)]
 pub struct EndoSinLookupTable<T>
 where
     T: Float + FloatConst,
@@ -94,22 +158,6 @@ impl<T> EndoSinLookupTable<T>
 where
     T: Float + FloatConst,
 {
-    pub fn new(precision: usize) -> Self {
-        let mut keys = Vec::with_capacity(precision);
-        let mut values = Vec::with_capacity(precision);
-        let upper_bound = T::PI();
-        let step = T::FRAC_PI_2() / <T as NumCast>::from(precision).unwrap();
-        for i in 0..precision+1 {
-            let key = step * <T as NumCast>::from(i).unwrap();
-            let value = key.sin();
-            keys.push(key);
-            values.push(value);
-        }
-        EndoSinLookupTable {
-            lookup_table: CyclingFloatLookupTable::new(keys, values, T::zero(), upper_bound),
-        }
-    }
-
     #[allow(dead_code)]
     pub fn lookup(&self, key: T) -> T {
         if key < T::zero() {
@@ -123,27 +171,57 @@ where
         }
     }
 }
+impl EndoSinLookupTable<f32>
+{
+    pub const fn new() -> Self {
+        const UPPER_BOUND: f32 = f32_consts::PI;
+
+        EndoSinLookupTable {
+            lookup_table: CyclingFloatLookupTable::<f32, f32>::new_const(SIN_F32_KEYS, SIN_F32_VALUES, 0.0f32, UPPER_BOUND),
+        }
+    }
+}
+impl EndoSinLookupTable<f64>
+{
+    pub const fn new() -> Self {
+        let upper_bound = f64_consts::PI;
+        
+        EndoSinLookupTable {
+            lookup_table: CyclingFloatLookupTable::<f64, f64>::new_const(SIN_F64_KEYS, SIN_F64_VALUES, 0.0f64, upper_bound),
+        }
+    }
+}
 
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct EndoCosLookupTable<T>
 where
-    T: Float + FloatConst + Signed + Sub<Output = T> + Rem<Output = T> + NumCast + From<u8>,
+    T: Float + FloatConst,
 {
     lookup_table: EndoSinLookupTable<T>,
 }
 impl<T> EndoCosLookupTable<T>
 where
-    T: Float + FloatConst + Signed + Sub<Output = T> + Rem<Output = T> + NumCast + From<u8>,
+    T: Float + FloatConst + std::fmt::Debug,
 {
-    pub fn new(precision: usize) -> Self {
-        EndoCosLookupTable {
-            lookup_table: EndoSinLookupTable::new(precision),
-        }
-    }
-
     #[allow(dead_code)]
     pub fn lookup(&self, key: T) -> T {
         self.lookup_table.lookup(key + T::FRAC_PI_2())
+    }
+}
+impl EndoCosLookupTable<f32>
+{
+    pub const fn new() -> Self {
+        EndoCosLookupTable {
+            lookup_table: EndoSinLookupTable::<f32>::new(),
+        }
+    }
+}
+impl EndoCosLookupTable<f64>
+{
+    pub const fn new() -> Self {
+        EndoCosLookupTable {
+            lookup_table: EndoSinLookupTable::<f64>::new(),
+        }
     }
 }

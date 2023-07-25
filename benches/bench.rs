@@ -10,19 +10,13 @@ fn pow2_benchmarks(group: &mut BenchmarkGroup<WallTime>, x_f64: &[f64], x_f32: &
         b.iter(|| x_f64.iter().map(|&x| black_box(x).fast_pow2()).collect::<Vec<f64>>())
     });
     group.bench_function("f64_builtin_fn", |b| {
-        b.iter(|| x_f64.iter().map(|&x| black_box(x).powi(2)).collect::<Vec<f64>>())
-    });
-    group.bench_function("f64_builtin_mul", |b| {
-        b.iter(|| x_f64.iter().map(|&x| black_box(x) * x).collect::<Vec<f64>>())
+        b.iter(|| x_f64.iter().map(|&x| 2.0f64.powf(black_box(x))).collect::<Vec<f64>>())
     });
     group.bench_function("f32_fast", |b| {
         b.iter(|| x_f32.iter().map(|&x| black_box(x).fast_pow2()).collect::<Vec<f32>>())
     });
     group.bench_function("f32_builtin_fn", |b| {
-        b.iter(|| x_f32.iter().map(|&x| black_box(x).powi(2)).collect::<Vec<f32>>())
-    });
-    group.bench_function("f32_builtin_mul", |b| {
-        b.iter(|| x_f32.iter().map(|&x| black_box(x) * x).collect::<Vec<f32>>())
+        b.iter(|| x_f32.iter().map(|&x| 2.0f32.powf(black_box(x))).collect::<Vec<f32>>())
     });
 }
 

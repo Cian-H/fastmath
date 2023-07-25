@@ -39,7 +39,7 @@ mod tests {
         fn pow2() -> Result<(), Box<dyn std::error::Error>> {
             let percentage_error = calculate_percentage_error(
                 &X.iter().map(|&x| x.fast_pow2()).collect::<Vec<f64>>(),
-                &X.iter().map(|&x| x.powi(2)).collect::<Vec<f64>>()
+                &X.iter().map(|&x| 2.0f64.powf(x)).collect::<Vec<f64>>()
             );
             assert!(!percentage_error.is_nan(), "fast_pow2<f64> percentage error is NaN");
             assert!(
@@ -75,6 +75,17 @@ mod tests {
             assert!(
                 percentage_error < TOLERANCE,
                 "fast_cos<f64> percentage error: {0}",
+                percentage_error
+            );
+            // lookup
+            let percentage_error = calculate_percentage_error(
+                &X.iter().map(|&x| x.lookup_cos()).collect::<Vec<f64>>(),
+                &X.iter().map(|&x| x.cos()).collect::<Vec<f64>>()
+            );
+            assert!(!percentage_error.is_nan(), "lookup_cos<f64> percentage error is NaN");
+            assert!(
+                percentage_error < TOLERANCE,
+                "lookup_cos<f64> percentage error: {0}",
                 percentage_error
             );
             Ok(())
@@ -114,7 +125,7 @@ mod tests {
             assert!(
                 calculate_percentage_error(
                     &X.iter().map(|&x| x.fast_pow2()).collect::<Vec<f32>>(),
-                    &X.iter().map(|&x| x.powi(2)).collect::<Vec<f32>>()
+                    &X.iter().map(|&x| 2.0f32.powf(x)).collect::<Vec<f32>>()
                 ) < TOLERANCE
             );
             Ok(())
@@ -136,6 +147,13 @@ mod tests {
             assert!(
                 calculate_percentage_error(
                     &X.iter().map(|&x| x.fast_cos()).collect::<Vec<f32>>(),
+                    &X.iter().map(|&x| x.cos()).collect::<Vec<f32>>()
+                ) < TOLERANCE
+            );
+            // lookup
+            assert!(
+                calculate_percentage_error(
+                    &X.iter().map(|&x| x.lookup_cos()).collect::<Vec<f32>>(),
                     &X.iter().map(|&x| x.cos()).collect::<Vec<f32>>()
                 ) < TOLERANCE
             );
