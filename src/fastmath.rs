@@ -1,12 +1,13 @@
 //! A collection of fast (often approximate) mathematical functions for accelerating mathematical functions
 
-// Optimisation note: lookup tables become faster when calculation takes > ~1ms
+// Optimisation note: lookup tables become faster when calculation takes > ~400us
 
 use std::f32::consts as f32_consts;
 use std::f64::consts as f64_consts;
-// use crate::lookup::*;
-use crate::lookup::lookup_table::EndoCosLookupTable;
+use crate::lookup::{EndoCosLookupTable, EndoSinLookupTable};
 
+const SIN_LOOKUP_F32: EndoSinLookupTable<f32> = EndoSinLookupTable::<f32>::new();
+const SIN_LOOKUP_F64: EndoSinLookupTable<f64> = EndoSinLookupTable::<f64>::new();
 const COS_LOOKUP_F32: EndoCosLookupTable<f32> = EndoCosLookupTable::<f32>::new();
 const COS_LOOKUP_F64: EndoCosLookupTable<f64> = EndoCosLookupTable::<f64>::new();
 
@@ -16,6 +17,25 @@ impl FastMath for f64 {}
 
 const V_SCALE_F32: f32 = 8388608.0; // the largest possible mantissa of an f32
 const V_SCALE_F64: f64 = 4503599627370496.0; // the largest possible mantissa of an f64
+
+
+pub trait LookupSin {
+    fn lookup_sin(self: Self) -> Self;
+}
+impl LookupSin for f64 {
+    #[inline]
+    fn lookup_sin(self: Self) -> f64 {
+        // Look up the value in the table
+        SIN_LOOKUP_F64.lookup(self)
+    }
+}
+impl LookupSin for f32 {
+    #[inline]
+    fn lookup_sin(self: Self) -> f32 {
+        // Look up the value in the table
+        SIN_LOOKUP_F32.lookup(self)
+    }
+}
 
 
 pub trait LookupCos {
@@ -118,15 +138,4 @@ impl FastSigmoid for f64 {
         const ONE: f64 = 1.0;
         (ONE + (-self).fast_exp()).recip()
     }
-}
-
-// functions for testing the accuracy of fast functions against builtin functions
-#[inline]
-pub fn sigmoid_builtin_f32(p: f32) -> f32 {
-    (1. + (-p).exp()).recip()
-}
-
-#[inline]
-pub fn sigmoid_builtin_f64(p: f64) -> f64 {
-    (1. + (-p).exp()).recip()
 }

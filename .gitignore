@@ -1,4 +1,8 @@
-/target
-/.vscode
-/tmp
+Cargo.lock
+debug/
+target/
+**/*.rs.bk
+*.pdb
+.vscode/
+tmp/
 *.ipynb

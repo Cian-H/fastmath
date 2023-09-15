@@ -2,9 +2,10 @@
 #![allow(unused_imports)]
 
 pub mod lookup;
-mod fastmath;
+pub mod macros;
 
+mod fastmath;
 pub use fastmath::*;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

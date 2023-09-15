@@ -1,0 +1,7 @@
+{
+    "pow2_fast": 2.0,
+    "exp_fast": 2.0,
+    "cos_fast": 1.0,
+    "cos_lk": 1.0,
+    "sigmoid_fast": 1.0
+}
