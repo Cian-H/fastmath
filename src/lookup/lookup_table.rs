@@ -13,8 +13,6 @@ use crate::{
 use crate::lookup::TABLE_SIZE;
 use crate::lookup::const_tables::*;
 
-// TODO: Test phf for lookup tables
-
 pub trait ToIterator<T>: IntoIterator<Item = T> {}
 impl<T, I> ToIterator<T> for I where I: IntoIterator<Item = T> {}
 

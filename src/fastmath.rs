@@ -138,6 +138,36 @@ impl FastSin for f64 {
     }
 }
 
+pub trait FastTan { // tan(x) = sin(x) / cos(x)
+    fn fast_tan(self: Self) -> Self;
+}
+impl FastTan for f32 {
+    #[inline]
+    fn fast_tan(self: Self) -> f32 {
+        let qpprox_cos = 
+            1.0 - f32_consts::FRAC_2_PI *
+            ((((self + f32_consts::PI).abs()) % f32_consts::TAU) - f32_consts::PI).abs();
+        let qpprox_sin = 
+            1.0 - f32_consts::FRAC_2_PI *
+            ((((self + f32_consts::FRAC_PI_2).abs()) % f32_consts::TAU) - f32_consts::PI).abs();
+        ((qpprox_sin * (1.0 + f32_consts::FRAC_PI_6)) - (qpprox_sin.powi(3) * f32_consts::FRAC_PI_6)) /
+        ((qpprox_cos * (1.0 + f32_consts::FRAC_PI_6)) - (qpprox_cos.powi(3) * f32_consts::FRAC_PI_6))
+    }
+}
+impl FastTan for f64 {
+    #[inline]
+    fn fast_tan(self: Self) -> f64 {
+        let qpprox_cos = 
+            1.0 - f64_consts::FRAC_2_PI *
+            ((((self + f64_consts::PI).abs()) % f64_consts::TAU) - f64_consts::PI).abs();
+        let qpprox_sin = 
+            1.0 - f64_consts::FRAC_2_PI *
+            ((((self + f64_consts::FRAC_PI_2).abs()) % f64_consts::TAU) - f64_consts::PI).abs();
+        ((qpprox_sin * (1.0 + f64_consts::FRAC_PI_6)) - (qpprox_sin.powi(3) * f64_consts::FRAC_PI_6)) /
+        ((qpprox_cos * (1.0 + f64_consts::FRAC_PI_6)) - (qpprox_cos.powi(3) * f64_consts::FRAC_PI_6))
+    }
+}
+
 pub trait FastExp {
     fn fast_exp(self: Self) -> Self;
 }

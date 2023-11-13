@@ -37,6 +37,7 @@ mod f64 {
     test_within_tolerance!(cos_lookup, f64, cos_lk);
     test_within_tolerance!(sin, f64, sin_fast);
     test_within_tolerance!(sin_lookup, f64, sin_lk);
+    test_within_tolerance!(tan, f64, tan_fast);
     test_within_tolerance!(sigmoid, f64, sigmoid_fast);
 }
 
@@ -50,5 +51,6 @@ mod f32 {
     test_within_tolerance!(cos_lookup, f32, cos_lk);
     test_within_tolerance!(sin, f32, sin_fast);
     test_within_tolerance!(sin_lookup, f32, sin_lk);
+    test_within_tolerance!(tan, f32, tan_fast);
     test_within_tolerance!(sigmoid, f32, sigmoid_fast);
 }

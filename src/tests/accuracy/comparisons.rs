@@ -88,6 +88,14 @@ pub mod f64 {
         panic_if_nan_or_print!(percentage_error, "lookup_sin<f64> percentage error")
     }
 
+    pub fn tan() -> Result<f64, Box<dyn std::error::Error>> {
+        let percentage_error = calculate_percentage_error(
+            &X_F64.iter().map(|&x| x.fast_tan()).collect::<Vec<f64>>(),
+            &X_F64.iter().map(|&x| exact::f64::tan(x)).collect::<Vec<f64>>()
+        );
+        panic_if_nan_or_print!(percentage_error, "fast_tan<f64> percentage error")
+    }
+
     pub fn sigmoid() -> Result<f64, Box<dyn std::error::Error>> {
         let percentage_error = calculate_percentage_error(
             &X_F64.iter().map(|&x| x.fast_sigmoid()).collect::<Vec<f64>>(),
@@ -150,6 +158,14 @@ pub mod f32 {
             &X_F32.iter().map(|&x| exact::f32::sin(x)).collect::<Vec<f32>>()
         );
         panic_if_nan_or_print!(percentage_error,  "lookup_sin<f32> percentage error")
+    }
+
+    pub fn tan() -> Result<f32, Box<dyn std::error::Error>> {
+        let percentage_error = calculate_percentage_error(
+            &X_F32.iter().map(|&x| x.fast_tan()).collect::<Vec<f32>>(),
+            &X_F32.iter().map(|&x| exact::f32::tan(x)).collect::<Vec<f32>>()
+        );
+        panic_if_nan_or_print!(percentage_error, "fast_tan<f32> percentage error")
     }
 
     pub fn sigmoid() -> Result<f32, Box<dyn std::error::Error>> {
