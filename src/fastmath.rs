@@ -1,10 +1,12 @@
 //! A collection of fast (often approximate) mathematical functions for accelerating mathematical functions
 
 // Optimisation note: lookup tables become faster when calculation takes > ~400us
-
 use std::f32::consts as f32_consts;
 use std::f64::consts as f64_consts;
-use crate::lookup::{EndoCosLookupTable, EndoSinLookupTable};
+use crate::lookup::{
+    EndoCosLookupTable, EndoSinLookupTable,
+    ToIterator, ToParallelIterator,
+};
 
 const SIN_LOOKUP_F32: EndoSinLookupTable<f32> = EndoSinLookupTable::<f32>::new();
 const SIN_LOOKUP_F64: EndoSinLookupTable<f64> = EndoSinLookupTable::<f64>::new();
@@ -55,6 +57,42 @@ impl LookupCos for f32 {
         COS_LOOKUP_F32.lookup(self)
     }
 }
+impl LookupCos for Vec<f64>
+{
+    #[inline]
+    fn lookup_cos(self: Self) -> Vec<f64> {
+        // Look up the value in the table
+        COS_LOOKUP_F64.map_lookups(self).collect::<Vec<f64>>()
+    }
+}
+impl LookupCos for Vec<f32>
+{
+    #[inline]
+    fn lookup_cos(self: Self) -> Vec<f32> {
+        // Look up the value in the table
+        COS_LOOKUP_F32.map_lookups(self).collect::<Vec<f32>>()
+    }
+}
+pub trait ParallelLookupCos {
+    fn par_lookup_cos(self: Self) -> Self;
+}
+
+use rayon::prelude::*;
+
+impl ParallelLookupCos for Vec<f64> {
+    #[inline]
+    fn par_lookup_cos(self: Self) -> Vec<f64> {
+        // Look up the value in the table
+        COS_LOOKUP_F64.par_map_lookups(self).collect::<Vec<f64>>()
+    }
+}
+impl ParallelLookupCos for Vec<f32> {
+    #[inline]
+    fn par_lookup_cos(self: Self) -> Vec<f32> {
+        // Look up the value in the table
+        COS_LOOKUP_F32.par_map_lookups(self).collect::<Vec<f32>>()
+    }
+}
 
 pub trait FastCos {
     fn fast_cos(self: Self) -> Self;
@@ -62,19 +100,41 @@ pub trait FastCos {
 impl FastCos for f32 {
     #[inline]
     fn fast_cos(self: Self) -> f32 {
-        const ONE: f32 = 1.0;
-        let v = ((((self + f32_consts::PI).abs()) % f32_consts::TAU) - f32_consts::PI).abs();
-        let qpprox = ONE - f32_consts::FRAC_2_PI * v;
-        qpprox + f32_consts::FRAC_PI_6 * qpprox * (ONE - qpprox * qpprox)
+        let qpprox = 
+            1.0 - f32_consts::FRAC_2_PI *
+            ((((self + f32_consts::PI).abs()) % f32_consts::TAU) - f32_consts::PI).abs();
+        (qpprox * (1.0 + f32_consts::FRAC_PI_6)) - (qpprox.powi(3) * f32_consts::FRAC_PI_6)
     }
 }
 impl FastCos for f64 {
     #[inline]
     fn fast_cos(self: Self) -> f64 {
-        const ONE: f64 = 1.0;
-        let v = ((((self + f64_consts::PI).abs()) % f64_consts::TAU) - f64_consts::PI).abs();
-        let qpprox = ONE - f64_consts::FRAC_2_PI * v;
-        qpprox + f64_consts::FRAC_PI_6 * qpprox * (ONE - qpprox * qpprox)
+        let qpprox =
+            1.0 - f64_consts::FRAC_2_PI *
+            ((((self + f64_consts::PI).abs()) % f64_consts::TAU) - f64_consts::PI).abs();
+        (qpprox * (1.0 + f64_consts::FRAC_PI_6)) - (qpprox.powi(3) * f64_consts::FRAC_PI_6)
+    }
+}
+
+pub trait FastSin {
+    fn fast_sin(self: Self) -> Self;
+}
+impl FastSin for f32 {
+    #[inline]
+    fn fast_sin(self: Self) -> f32 {
+        let qpprox = 
+            1.0 - f32_consts::FRAC_2_PI *
+            ((((self + f32_consts::FRAC_PI_2).abs()) % f32_consts::TAU) - f32_consts::PI).abs();
+        (qpprox * (1.0 + f32_consts::FRAC_PI_6)) - (qpprox.powi(3) * f32_consts::FRAC_PI_6)
+    }
+}
+impl FastSin for f64 {
+    #[inline]
+    fn fast_sin(self: Self) -> f64 {
+        let qpprox =
+            1.0 - f64_consts::FRAC_2_PI *
+            ((((self + f64_consts::FRAC_PI_2).abs()) % f64_consts::TAU) - f64_consts::PI).abs();
+        (qpprox * (1.0 + f64_consts::FRAC_PI_6)) - (qpprox.powi(3) * f64_consts::FRAC_PI_6)
     }
 }
 
@@ -128,14 +188,12 @@ pub trait FastSigmoid {
 impl FastSigmoid for f32 {
     #[inline]
     fn fast_sigmoid(self: Self) -> f32 {
-        const ONE: f32 = 1.0;
-        (ONE + (-self).fast_exp()).recip()
+        (1.0 + (-self).fast_exp()).recip()
     }
 }
 impl FastSigmoid for f64 {
     #[inline]
     fn fast_sigmoid(self: Self) -> f64 {
-        const ONE: f64 = 1.0;
-        (ONE + (-self).fast_exp()).recip()
+        (1.0 + (-self).fast_exp()).recip()
     }
 }

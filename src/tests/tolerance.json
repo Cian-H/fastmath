@@ -3,5 +3,7 @@
     "exp_fast": 2.0,
     "cos_fast": 1.0,
     "cos_lk": 1.0,
+    "sin_fast": 1.0,
+    "sin_lk": 1.0,
     "sigmoid_fast": 1.0
 }

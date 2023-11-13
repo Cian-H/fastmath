@@ -72,6 +72,22 @@ pub mod f64 {
         panic_if_nan_or_print!(percentage_error,  "lookup_cos<f64> percentage error")
     }
 
+    pub fn sin() -> Result<f64, Box<dyn std::error::Error>> {
+        let percentage_error = calculate_percentage_error(
+            &X_F64.iter().map(|&x| x.fast_sin()).collect::<Vec<f64>>(),
+            &X_F64.iter().map(|&x| exact::f64::sin(x)).collect::<Vec<f64>>()
+        );
+        panic_if_nan_or_print!(percentage_error, "fast_sin<f64> percentage error")
+    }
+
+    pub fn sin_lookup() -> Result<f64, Box<dyn std::error::Error>> {
+        let percentage_error = calculate_percentage_error(
+            &X_F64.iter().map(|&x| x.lookup_sin()).collect::<Vec<f64>>(),
+            &X_F64.iter().map(|&x| exact::f64::sin(x)).collect::<Vec<f64>>()
+        );
+        panic_if_nan_or_print!(percentage_error, "lookup_sin<f64> percentage error")
+    }
+
     pub fn sigmoid() -> Result<f64, Box<dyn std::error::Error>> {
         let percentage_error = calculate_percentage_error(
             &X_F64.iter().map(|&x| x.fast_sigmoid()).collect::<Vec<f64>>(),
@@ -118,6 +134,22 @@ pub mod f32 {
             &X_F32.iter().map(|&x| exact::f32::cos(x)).collect::<Vec<f32>>()
         );
         panic_if_nan_or_print!(percentage_error,  "lookup_cos<f32> percentage error")
+    }
+
+    pub fn sin() -> Result<f32, Box<dyn std::error::Error>> {
+        let percentage_error = calculate_percentage_error(
+            &X_F32.iter().map(|&x| x.fast_sin()).collect::<Vec<f32>>(),
+            &X_F32.iter().map(|&x| exact::f32::sin(x)).collect::<Vec<f32>>()
+        );
+        panic_if_nan_or_print!(percentage_error, "fast_sin<f32> percentage error")
+    }
+
+    pub fn sin_lookup() -> Result<f32, Box<dyn std::error::Error>> {
+        let percentage_error = calculate_percentage_error(
+            &X_F32.iter().map(|&x| x.lookup_sin()).collect::<Vec<f32>>(),
+            &X_F32.iter().map(|&x| exact::f32::sin(x)).collect::<Vec<f32>>()
+        );
+        panic_if_nan_or_print!(percentage_error,  "lookup_sin<f32> percentage error")
     }
 
     pub fn sigmoid() -> Result<f32, Box<dyn std::error::Error>> {

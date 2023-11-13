@@ -11,6 +11,10 @@ pub mod f64 {
         n.cos()
     }
 
+    pub fn sin(n: f64) -> f64 {
+        n.sin()
+    }
+
     pub fn sigmoid(n: f64) -> f64 {
         (1. + (-n).exp()).recip()
     }
@@ -27,6 +31,10 @@ pub mod f32 {
 
     pub fn cos(n: f32) -> f32 {
         n.cos()
+    }
+
+    pub fn sin(n: f32) -> f32 {
+        n.sin()
     }
 
     pub fn sigmoid(n: f32) -> f32 {

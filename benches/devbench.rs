@@ -13,11 +13,10 @@ pub mod exact {
 }
 include!("../src/tests/accuracy/x.rs");
 
+#[inline]
 fn dev_cos(x: f64) -> f64 {
-    const ONE: f64 = 1.0;
-    let v = ((((x + f64_consts::PI).abs()) % f64_consts::TAU) - f64_consts::PI).abs();
-    let qpprox = ONE - f64_consts::FRAC_2_PI * v;
-    qpprox + f64_consts::FRAC_PI_6 * qpprox * (ONE - qpprox * qpprox)
+    let qpprox = 1.0 - f64_consts::FRAC_2_PI * (((x + f64_consts::PI) % f64_consts::TAU) - f64_consts::PI).abs();
+    (qpprox * (1.0 + f64_consts::FRAC_PI_6)) - (qpprox.powi(3) * f64_consts::FRAC_PI_6)
 }
 
 fn devbench(group: &mut BenchmarkGroup<WallTime>) {
