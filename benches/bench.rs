@@ -111,6 +111,21 @@ fn sin_benchmarks(group: &mut BenchmarkGroup<WallTime>, x_f64: &[f64], x_f32: &[
     });
 }
 
+fn tan_benchmarks(group: &mut BenchmarkGroup<WallTime>, x_f64: &[f64], x_f32: &[f32]) {
+    group.bench_function("f64_fast", |b| {
+        b.iter(|| x_f64.iter().map(|&x| black_box(x).fast_tan()).collect::<Vec<f64>>())
+    });
+    group.bench_function("f64_builtin", |b| {
+        b.iter(|| x_f64.iter().map(|&x| exact::f64::tan(black_box(x))).collect::<Vec<f64>>())
+    });
+    group.bench_function("f32_fast", |b| {
+        b.iter(|| x_f32.iter().map(|&x| black_box(x).fast_tan()).collect::<Vec<f32>>())
+    });
+    group.bench_function("f32_builtin", |b| {
+        b.iter(|| x_f32.iter().map(|&x| exact::f32::tan(black_box(x))).collect::<Vec<f32>>())
+    });
+}
+
 fn sigmoid_benchmarks(group: &mut BenchmarkGroup<WallTime>, x_f64: &[f64], x_f32: &[f32]) {
     group.bench_function("f64_fast", |b| {
         b.iter(|| x_f64.iter().map(|&x| black_box(x).fast_sigmoid()).collect::<Vec<f64>>())
@@ -145,6 +160,10 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("sin");
     sin_benchmarks(&mut group, &X_F64, &X_F32);
+    group.finish();
+
+    let mut group = c.benchmark_group("tan");
+    tan_benchmarks(&mut group, &X_F64, &X_F32);
     group.finish();
 
     let mut group = c.benchmark_group("sigmoid");
